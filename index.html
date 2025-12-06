@@ -7,35 +7,43 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- HERO -->
+  <!-- NEON ARC HERO -->
   <header class="hero" role="banner" aria-label="PDFNiba header">
-    <div class="hero-overlay"></div>
-    <div class="hero-inner">
+    <div class="hero-glow">
+      <span class="arc arc-1"></span>
+      <span class="arc arc-2"></span>
+      <span class="beam beam-1"></span>
+      <span class="beam beam-2"></span>
+    </div>
+
+    <div class="hero-inner" role="img" aria-hidden="false">
       <img class="logo" src="https://i.postimg.cc/NMbwtpKp/523332075_122124999572908656_46151600415923485_n_(1).jpg" alt="PDFNiba logo">
       <div class="hero-text">
         <h1>PDFNiba <span class="muted">— HSC + Admission</span></h1>
-        <p class="lead">Read | Learn | Conquer ⚔️ &nbsp; · &nbsp; By the student, for the student</p>
+        <p class="lead">Read · Learn · Conquer ⚔️ &nbsp; · &nbsp; By the student, for the student</p>
       </div>
     </div>
   </header>
 
-  <!-- TOP BAR (search/fb) -->
-  <div class="topbar">
+  <!-- TOPBAR -->
+  <div class="topbar" role="search">
     <input id="search" class="search" placeholder="Search files or folders..." aria-label="Search files or folders">
     <a class="fb" href="https://www.facebook.com/pdfniba/" target="_blank" rel="noreferrer">Facebook</a>
   </div>
 
-  <!-- MAIN GRID -->
+  <!-- MAIN CONTENT -->
   <main class="main" id="main">
     <section id="grid" class="grid" aria-live="polite"></section>
     <div id="empty" class="empty" hidden>No results found.</div>
 
-    <!-- Resources card (public universities) -->
+    <!-- RESOURCES: Public Universities -->
     <aside class="resources" aria-label="Public universities of Bangladesh">
       <div class="resources-inner">
-        <h3>📚 Bangladesh Public Universities</h3>
-        <p class="resources-note">List of public universities — useful reference for admission seekers.</p>
-        <img src="https://i.postimg.cc/MG9D8F0x/476890629_1063862749087667_1627279756588243027_n.jpg" alt="Public universities list" />
+        <div class="resources-text">
+          <h3>📚 Bangladesh Public Universities</h3>
+          <p class="resources-note">Useful reference for admission seekers — click to enlarge or save the list.</p>
+        </div>
+        <img src="https://i.postimg.cc/MG9D8F0x/476890629_1063862749087667_1627279756588243027_n.jpg" alt="List of public universities" />
       </div>
     </aside>
   </main>
