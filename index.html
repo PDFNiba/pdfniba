@@ -1,53 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDF Library</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDFNiba - HSC + Admission</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-  <header>
-    <h1>📚 My PDF Library</h1>
-    <p>Click a folder to view PDFs</p>
+  <header class="hero">
+    <h1>📚 PDFNiba</h1>
+    <h2>HSC + Admission</h2>
+    <p class="tagline">Read | Learn | Conquer ⚔️</p>
+    <p class="tagline-small">By the student, For the student 🤝</p>
   </header>
 
-  <main>
-    <div class="search-container">
-      <input id="search" type="text" placeholder="Search files...">
-    </div>
+  <main class="container">
+    <h3 class="section-title">📁 Available PDF Collections</h3>
 
-    <div id="folders" class="folders-container">
-      <!-- Folder Example -->
-      <div class="folder-card">
-        <button class="folder-btn" data-target="folder1">
-          <span>📁 Folder 1</span>
-          <span class="arrow">▼</span>
-        </button>
-        <div id="folder1" class="folder-files">
-          <a href="https://drive.google.com/file/d/FILE_ID1/view" target="_blank">📄 File 1.pdf</a>
-          <a href="https://drive.google.com/file/d/FILE_ID2/view" target="_blank">📄 File 2.pdf</a>
-        </div>
+    <div id="folderList" class="folder-list">
+      <!-- Folders inserted manually or dynamically -->
+      <div class="folder" onclick="toggleFolder(this)">
+        <div class="folder-header">📂 Physics</div>
+        <ul class="file-list">
+          <li><a href="#" target="_blank">Chapter 1.pdf</a></li>
+          <li><a href="#" target="_blank">Chapter 2.pdf</a></li>
+        </ul>
       </div>
 
-      <div class="folder-card">
-        <button class="folder-btn" data-target="folder2">
-          <span>📁 Folder 2</span>
-          <span class="arrow">▼</span>
-        </button>
-        <div id="folder2" class="folder-files">
-          <a href="https://drive.google.com/file/d/FILE_ID3/view" target="_blank">📄 File A.pdf</a>
-          <a href="https://drive.google.com/file/d/FILE_ID4/view" target="_blank">📄 File B.pdf</a>
-        </div>
+      <div class="folder" onclick="toggleFolder(this)">
+        <div class="folder-header">📂 Chemistry</div>
+        <ul class="file-list">
+          <li><a href="#" target="_blank">Organic Part 1.pdf</a></li>
+          <li><a href="#" target="_blank">Inorganic Part 2.pdf</a></li>
+        </ul>
       </div>
-
-      <!-- Add more folders here -->
     </div>
   </main>
+
+  <footer class="footer">© 2025 PDFNiba — Empowering Students 🌟</footer>
 
   <script src="script.js"></script>
 </body>
