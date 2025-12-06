@@ -1,0 +1,117 @@
+/* General */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f8fafc;
+  margin: 0;
+  padding: 20px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+header h1 {
+  font-size: 2.5rem;
+  color: #1e40af;
+}
+
+header p {
+  color: #4b5563;
+  margin-top: 5px;
+}
+
+/* Search */
+.search-container {
+  max-width: 600px;
+  margin: 0 auto 20px auto;
+}
+
+#search {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font-size: 1rem;
+}
+
+#search:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* Folder Cards */
+.folders-container {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.folder-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+
+.folder-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Folder Button */
+.folder-btn {
+  width: 100%;
+  padding: 15px 20px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.folder-btn:hover {
+  background: #f1f5f9;
+}
+
+.arrow {
+  transition: transform 0.3s;
+}
+
+/* Folder Files */
+.folder-files {
+  display: none;
+  flex-direction: column;
+  background: #f8fafc;
+}
+
+.folder-files a {
+  padding: 12px 25px;
+  border-bottom: 1px solid #e2e8f0;
+  text-decoration: none;
+  color: #1f2937;
+  transition: background 0.2s;
+}
+
+.folder-files a:hover {
+  background: #e0e7ff;
+  color: #1e40af;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .folder-btn {
+    font-size: 1rem;
+  }
+
+  header h1 {
+    font-size: 2rem;
+  }
+}
