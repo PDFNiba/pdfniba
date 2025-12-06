@@ -4,8 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PDFNiba - HSC + Admission</title>
-  <!-- Use absolute path for CSS -->
-  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="hero">
@@ -18,19 +17,28 @@
   <main class="container">
     <h3 class="section-title">📁 Available PDF Collections</h3>
 
-    <!-- Example folder — add more manually -->
-    <div class="folder" onclick="toggleFolder(this)">
-      <div class="folder-header">📂 Udvash HSC QB</div>
-      <ul class="file-list">
-        <li><a href="#" target="_blank">Sample.pdf</a></li>
-      </ul>
-    </div>
+    <div id="folderList" class="folder-list">
+      <!-- Folders inserted manually or dynamically -->
+      <div class="folder" onclick="toggleFolder(this)">
+        <div class="folder-header">📂 Physics</div>
+        <ul class="file-list">
+          <li><a href="#" target="_blank">Chapter 1.pdf</a></li>
+          <li><a href="#" target="_blank">Chapter 2.pdf</a></li>
+        </ul>
+      </div>
 
+      <div class="folder" onclick="toggleFolder(this)">
+        <div class="folder-header">📂 Chemistry</div>
+        <ul class="file-list">
+          <li><a href="#" target="_blank">Organic Part 1.pdf</a></li>
+          <li><a href="#" target="_blank">Inorganic Part 2.pdf</a></li>
+        </ul>
+      </div>
+    </div>
   </main>
 
   <footer class="footer">© 2025 PDFNiba — Empowering Students 🌟</footer>
 
-  <!-- Use absolute path for JS too -->
-  <script src="/script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
