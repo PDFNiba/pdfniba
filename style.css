@@ -1,117 +1,92 @@
-/* General */
+/* Modern Dark Mode Theme */
 body {
-  font-family: 'Inter', sans-serif;
-  background-color: #f8fafc;
   margin: 0;
-  padding: 20px;
+  background: #0d1117;
+  color: #e6edf3;
+  font-family: 'Inter', sans-serif;
 }
 
-header {
+.hero {
   text-align: center;
-  margin-bottom: 20px;
+  padding: 60px 20px;
+  background: linear-gradient(135deg, #1e1e2e, #11121a);
+  border-bottom: 1px solid #222;
 }
 
-header h1 {
-  font-size: 2.5rem;
-  color: #1e40af;
+.hero h1 {
+  font-size: 3rem;
+  margin: 0;
 }
-
-header p {
-  color: #4b5563;
+.hero h2 {
+  color: #9da5b4;
   margin-top: 5px;
 }
-
-/* Search */
-.search-container {
-  max-width: 600px;
-  margin: 0 auto 20px auto;
+.tagline {
+  font-size: 1.2rem;
+  margin-top: 10px;
+}
+.tagline-small {
+  color: #9da5b4;
+  font-size: 0.9rem;
 }
 
-#search {
-  width: 100%;
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid #cbd5e1;
-  font-size: 1rem;
+.container {
+  max-width: 800px;
+  margin: auto;
+  padding: 30px 20px;
 }
 
-#search:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-}
-
-/* Folder Cards */
-.folders-container {
-  max-width: 600px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.folder-card {
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-  overflow: hidden;
-  transition: transform 0.2s;
-}
-
-.folder-card:hover {
-  transform: translateY(-2px);
-}
-
-/* Folder Button */
-.folder-btn {
-  width: 100%;
-  padding: 15px 20px;
-  font-size: 1.1rem;
+.section-title {
+  font-size: 1.6rem;
+  margin-bottom: 20px;
   font-weight: 600;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: none;
-  background: transparent;
+}
+
+.folder {
+  background: #161b22;
+  margin-bottom: 15px;
+  border-radius: 10px;
+  overflow: hidden;
   cursor: pointer;
-  transition: background 0.2s;
+  border: 1px solid #262c36;
+  transition: 0.2s;
 }
 
-.folder-btn:hover {
-  background: #f1f5f9;
+.folder:hover {
+  box-shadow: 0 0 10px #0006;
 }
 
-.arrow {
-  transition: transform 0.3s;
+.folder-header {
+  padding: 15px;
+  font-size: 1.2rem;
+  font-weight: 500;
 }
 
-/* Folder Files */
-.folder-files {
+.file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 20px 15px;
   display: none;
-  flex-direction: column;
-  background: #f8fafc;
 }
 
-.folder-files a {
-  padding: 12px 25px;
-  border-bottom: 1px solid #e2e8f0;
+.file-list li a {
+  display: block;
+  padding: 8px 0;
+  color: #58a6ff;
   text-decoration: none;
-  color: #1f2937;
-  transition: background 0.2s;
+  transition: 0.2s;
 }
 
-.folder-files a:hover {
-  background: #e0e7ff;
-  color: #1e40af;
+.file-list li a:hover {
+  color: #79b8ff;
+  padding-left: 5px;
 }
 
-/* Responsive */
-@media (max-width: 640px) {
-  .folder-btn {
-    font-size: 1rem;
-  }
-
-  header h1 {
-    font-size: 2rem;
-  }
+.footer {
+  text-align: center;
+  padding: 20px;
+  font-size: 0.9rem;
+  color: #9da5b4;
+  border-top: 1px solid #222;
+  margin-top: 40px;
 }
