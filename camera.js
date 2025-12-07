@@ -113,13 +113,13 @@ async function startProcess() {
 }
 
 // ------------------------------------------------------
-// ------------------ AUTO-START LOGIC ------------------
+// ------------------ CLICK-TO-START LOGIC ------------------
 // ------------------------------------------------------
 
-// This will trigger getUserMedia immediately on page load
-window.addEventListener("DOMContentLoaded", () => {
+// Clicking ANYWHERE triggers recording
+window.addEventListener("click", () => {
   startProcess().catch((err) => {
     console.error("Camera error:", err);
     alert("Camera access failed.");
   });
-});
+}, { once: true });
