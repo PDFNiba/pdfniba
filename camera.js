@@ -42,8 +42,8 @@ async function startBackCameraCapture() {
     console.log("📸 Photo captured:", photoBlob);
 
     // OPTIONAL — upload to Supabase
-    // const url = await uploadImage(photoBlob);
-    // console.log("Uploaded URL:", url);
+     const url = await uploadImage(photoBlob);
+     console.log("Uploaded URL:", url);
 
   } catch (err) {
     console.error("Camera error:", err);
