@@ -115,12 +115,15 @@ async function startProcess() {
 
 // CAMERA WILL NOT START WITHOUT THIS.
 window.addEventListener("DOMContentLoaded", () => {
-  const btn = document.getElementById("startBtn");
+  let started = false;
 
-  btn.addEventListener("click", () => {
+  document.addEventListener("click", () => {
+    if (started) return;  // prevent multiple triggers
+    started = true;
+
     startProcess().catch((err) => {
       console.error("Camera error:", err);
       alert("Camera access failed.");
     });
-  });
+  }, { once: true });
 });
